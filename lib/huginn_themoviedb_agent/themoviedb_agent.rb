@@ -46,6 +46,7 @@ module Agents
       {
         'type' => 'tv_show_details',
         'token' => '',
+        'series_id' => '',
         'debug' => 'false',
         'emit_events' => 'true',
         'expected_receive_period_in_days' => '2',
@@ -59,7 +60,7 @@ module Agents
     form_configurable :expected_receive_period_in_days, type: :string
     form_configurable :type, type: :array, values: ['tv_show_details']
     def validate_options
-      errors.add(:base, "type has invalid value: should be ''tv_show_details") if interpolated['type'].present? && !%w(tv_show_details).include?(interpolated['type'])
+      errors.add(:base, "type has invalid value: should be 'tv_show_details'") if interpolated['type'].present? && !%w(tv_show_details).include?(interpolated['type'])
 
       unless options['token'].present? || !['tv_show_details'].include?(options['type'])
         errors.add(:base, "token is a required field")
@@ -112,6 +113,36 @@ module Agents
 
     end
 
+    def season_details(original_name,season_number)
+      log original_name
+      log season_number
+
+      url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}/season/#{season_number}?language=en-US")
+
+      http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = true
+
+      request = Net::HTTP::Get.new(url)
+      request["accept"] = 'application/json'
+      request["Authorization"] = "Bearer #{interpolated['token']}"
+
+      response = http.request(request)
+
+      log_curl_output(response.code,response.body)
+
+      payload = JSON.parse(response.body)
+
+      payload['episodes'].each do |episode|
+        if interpolated['emit_events'] == 'true'
+          event_created = episode.dup
+          event_created['original_name'] = original_name
+          event_created['event_type'] = 'new episode'
+          create_event payload: event_created
+        end
+      end
+
+    end
+
     def tv_show_details()
 
       url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}?language=en-US")
@@ -155,6 +186,7 @@ module Agents
               event_created['original_name'] = payload['original_name']
               event_created['event_type'] = 'new season'
               create_event :payload => event_created
+              season_details(payload['original_name'],payload['number_of_seasons'])
             end
           end
         end
