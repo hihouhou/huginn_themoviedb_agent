@@ -113,11 +113,9 @@ module Agents
 
     end
 
-    def season_details(original_name,season_number)
-      log original_name
-      log season_number
+    def season_details(original_name,season_number,language)
 
-      url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}/season/#{season_number}?language=en-US")
+      url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}/season/#{season_number}?language=#{language}")
 
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
@@ -143,9 +141,30 @@ module Agents
 
     end
 
+    def account_details()
+
+      url = URI("https://api.themoviedb.org/3/account/null")
+
+      http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = true
+
+      request = Net::HTTP::Get.new(url)
+      request["accept"] = 'application/json'
+      request["Authorization"] = "Bearer #{interpolated['token']}"
+
+      response = http.request(request)
+
+      log_curl_output(response.code,response.body)
+
+      return response.body
+
+    end
+
     def tv_show_details()
 
-      url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}?language=en-US")
+      your_details = JSON.parse(account_details())
+      language = "#{your_details['iso_639_1']}" + "-" + "#{your_details['iso_3166_1']}"
+      url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}?language=#{language}")
       
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
@@ -186,7 +205,7 @@ module Agents
               event_created['original_name'] = payload['original_name']
               event_created['event_type'] = 'new season'
               create_event :payload => event_created
-              season_details(payload['original_name'],payload['number_of_seasons'])
+              season_details(payload['original_name'],payload['number_of_seasons'],language)
             end
           end
         end
