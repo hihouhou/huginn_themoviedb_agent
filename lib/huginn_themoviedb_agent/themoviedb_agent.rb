@@ -113,6 +113,25 @@ module Agents
 
     end
 
+#    def episode_details(episode_number,season_number,language)
+#
+#      url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}/season/#{season_number}/episode/#{episode_number}?language=#{language}")
+#      
+#      http = Net::HTTP.new(url.host, url.port)
+#      http.use_ssl = true
+#      
+#      request = Net::HTTP::Get.new(url)
+#      request["accept"] = 'application/json'
+#      request["Authorization"] = "Bearer #{interpolated['token']}"
+#      
+#      response = http.request(request)
+#
+#      log_curl_output(response.code,response.body)
+#
+#      JSON.parse(response.body)
+#
+#    end
+
     def season_details(original_name,season_number,language)
 
       url = URI("https://api.themoviedb.org/3/tv/#{interpolated['series_id']}/season/#{season_number}?language=#{language}")
@@ -184,7 +203,7 @@ module Agents
           create_event payload: payload
         else
           last_status = memory['last_status']
-          if payload['last_air_date'] != last_status['last_air_date']
+          if payload['last_air_date'] != last_status['last_air_date'] && !payload['last_episode_to_air']['overview'].empty?
             event_created = payload['last_episode_to_air'].dup
             event_created['original_name'] = payload['original_name']
             event_created['event_type'] = 'last episode'
