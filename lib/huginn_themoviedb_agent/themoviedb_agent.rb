@@ -203,7 +203,7 @@ module Agents
           create_event payload: payload
         else
           last_status = memory['last_status']
-          if payload['last_air_date'] != last_status['last_air_date'] && !payload['last_episode_to_air']['overview'].empty?
+          if payload['last_air_date'] != last_status['last_air_date']
             event_created = payload['last_episode_to_air'].dup
             event_created['original_name'] = payload['original_name']
             event_created['event_type'] = 'last episode'
